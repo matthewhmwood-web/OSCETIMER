@@ -1,0 +1,17 @@
+name: Generate Sitemap
+on:
+  push:
+    branches:
+      - main # Or your default branch
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Generate Sitemap
+        uses: cicirello/generate-sitemap@v1
+        with:
+          base-url-path: https://matthewhmwood-web.github.io/OSCETIMER/
