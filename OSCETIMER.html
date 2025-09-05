@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Matthew Wood's OSCE Timer</title>
+    <!-- Essential scripts and styles for the timer to function -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Custom styles for the timer */
+        body {
+            font-family: 'Inter', sans-serif;
+            touch-action: manipulation;
+        }
+        .timer-display {
+            font-variant-numeric: tabular-nums;
+        }
+        .input-error {
+            border-color: #ef4444 !important;
+            --tw-ring-color: #ef4444 !important;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900">
+
+    <!-- Main HTML structure for the timer -->
+    <div class="text-gray-800 dark:text-gray-200 flex items-center justify-center min-h-screen p-4">
+        <div class="w-full max-w-2xl mx-auto">
+            <div id="settings-view" class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 md:p-8 transition-transform duration-500">
+                <h1 class="text-3xl font-bold text-center text-gray-900 dark:text-white mb-6">Matthew Wood's OSCE Timer</h1>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div>
+                        <label for="num-stations" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Number of Stations</label>
+                        <input type="number" id="num-stations" value="8" min="1" class="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition">
+                    </div>
+                    <div>
+                        <label for="station-length" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Station Length (minutes)</label>
+                        <input type="number" id="station-length" value="5" min="1" class="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition">
+                    </div>
+                    <div>
+                        <label for="warning-time" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Warning Time (minutes)</label>
+                        <input type="number" id="warning-time" value="0.5" min="0.1" step="0.1" class="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition">
+                    </div>
+                    <div>
+                        <label for="changeover-time" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Changeover Time (minutes)</label>
+                        <input type="number" id="changeover-time" value="1" min="0.1" step="0.1" class="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition">
+                    </div>
+                     <div class="sm:col-span-2">
+                        <label for="initial-reading-time" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Initial Reading Time (minutes)</label>
+                        <input type="number" id="initial-reading-time" value="1" min="0.1" step="0.1" class="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition">
+                    </div>
+                </div>
+                 <div id="error-message" class="text-red-500 text-center mt-4 h-6 font-medium"></div>
+                <div class="mt-2">
+                    <button id="start-button" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 px-6 rounded-lg text-lg transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-indigo-300 dark:focus:ring-indigo-800">
+                        Start OSCE
+                    </button>
+                </div>
+            </div>
+    
+            <div id="timer-view" class="hidden bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 md:p-8 transition-transform duration-500">
+                <div class="text-center">
+                    <h2 id="status-heading" class="text-2xl md:text-3xl font-bold text-indigo-600 dark:text-indigo-400 mb-2">Reading Time</h2>
+                    <p id="station-subheading" class="text-lg text-gray-600 dark:text-gray-400 mb-6">Next: Station 1</p>
+                    <div id="timer-display" class="timer-display text-7xl md:text-9xl font-bold text-gray-900 dark:text-white my-8 py-4 bg-gray-100 dark:bg-gray-700 rounded-xl">00:00</div>
+                    <div class="flex flex-col sm:flex-row items-center justify-center gap-4 mt-8">
+                        <button id="pause-button" class="w-full sm:w-auto flex-1 bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 px-6 rounded-lg text-lg transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-amber-300 dark:focus:ring-amber-800">Pause</button>
+                        <button id="reset-button" class="w-full sm:w-auto flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg text-lg transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-red-300 dark:focus:ring-red-800">Reset</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- All the JavaScript logic for the timer -->
+    <script>
+        // Self-invoking function to avoid conflicts with other scripts
+        (function() {
+            // DOM Elements
+            const settingsView = document.getElementById('settings-view');
+            const timerView = document.getElementById('timer-view');
+            const startButton = document.getElementById('start-button');
+            const pauseButton = document.getElementById('pause-button');
+            const resetButton = document.getElementById('reset-button');
+            const timerDisplay = document.getElementById('timer-display');
+            const statusHeading = document.getElementById('status-heading');
+            const stationSubheading = document.getElementById('station-subheading');
+            const errorMessage = document.getElementById('error-message');
+    
+    
+            // Input Fields
+            const numStationsInput = document.getElementById('num-stations');
+            const stationLengthInput = document.getElementById('station-length');
+            const warningTimeInput = document.getElementById('warning-time');
+            const changeoverTimeInput = document.getElementById('changeover-time');
+            const initialReadingTimeInput = document.getElementById('initial-reading-time');
+    
+    
+            // State
+            let timerInterval = null;
+            let totalSeconds = 0;
+            let isPaused = false;
+            let currentState = 'idle'; // idle, reading, station, rest, finished
+            let currentStation = 0;
+            let settings = {};
+    
+            // Speech Synthesis
+            const synth = window.speechSynthesis;
+            let voices = [];
+    
+            function populateVoiceList() {
+                if(typeof synth === 'undefined') { return; }
+                voices = synth.getVoices();
+            }
+            populateVoiceList();
+            if (synth && synth.onvoiceschanged !== undefined) {
+                synth.onvoiceschanged = populateVoiceList;
+            }
+    
+            function speak(text) {
+                // Cancel any previous speech to prevent overlap
+                synth.cancel();
+                if (text !== '') {
+                    const utterThis = new SpeechSynthesisUtterance(text);
+                    utterThis.onerror = function (event) { console.error('SpeechSynthesisUtterance.onerror'); }
+                    utterThis.pitch = 1;
+                    utterThis.rate = 1;
+                    synth.speak(utterThis);
+                }
+            }
+    
+            function updateDisplay() {
+                const minutes = Math.floor(totalSeconds / 60);
+                const seconds = totalSeconds % 60;
+                timerDisplay.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            }
+    
+            function startTimer() {
+                if (timerInterval) clearInterval(timerInterval);
+                timerInterval = setInterval(() => {
+                    if (!isPaused && totalSeconds > 0) {
+                        totalSeconds--;
+                        updateDisplay();
+    
+                        if (currentState === 'station' && totalSeconds === settings.warningTime) {
+                            speak('Warning');
+                            timerDisplay.classList.add('text-amber-500', 'dark:text-amber-400');
+                        }
+    
+                        if (totalSeconds === 0) {
+                            advanceState();
+                        }
+                    }
+                }, 1000);
+            }
+    
+            function advanceState() {
+                timerDisplay.classList.remove('text-amber-500', 'dark:text-amber-400');
+                
+                if (currentState === 'reading') {
+                    currentStation++;
+                    startStation();
+                } else if (currentState === 'station') {
+                    speak('End station');
+                    if (currentStation < settings.numStations) {
+                        startRest();
+                    } else {
+                        finishOSCE();
+                    }
+                } else if (currentState === 'rest') {
+                    currentStation++;
+                    startStation();
+                }
+            }
+    
+            function startStation() {
+                currentState = 'station';
+                totalSeconds = settings.stationLength;
+                statusHeading.textContent = `Station ${currentStation}`;
+                stationSubheading.textContent = `Total Stations: ${settings.numStations}`;
+                updateDisplay();
+                speak('Enter station');
+            }
+    
+            function startRest() {
+                currentState = 'rest';
+                totalSeconds = settings.changeoverTime;
+                statusHeading.textContent = 'Changeover Time';
+                stationSubheading.textContent = `Next: Station ${currentStation + 1}`;
+                updateDisplay();
+                speak('Reading time starting');
+            }
+    
+            function finishOSCE() {
+                currentState = 'finished';
+                clearInterval(timerInterval);
+                statusHeading.textContent = 'OSCE Complete!';
+                stationSubheading.textContent = 'Well done!';
+                timerDisplay.textContent = 'END';
+                speak('OSCE complete. Well done.');
+                pauseButton.disabled = true;
+                pauseButton.classList.add('opacity-50', 'cursor-not-allowed');
+            }
+    
+            startButton.addEventListener('click', () => {
+                errorMessage.textContent = '';
+                warningTimeInput.classList.remove('input-error');
+                stationLengthInput.classList.remove('input-error');
+    
+                settings = {
+                    numStations: parseInt(numStationsInput.value, 10),
+                    stationLength: parseFloat(stationLengthInput.value) * 60,
+                    warningTime: parseFloat(warningTimeInput.value) * 60,
+                    changeoverTime: parseFloat(changeoverTimeInput.value) * 60,
+                    initialReadingTime: parseFloat(initialReadingTimeInput.value) * 60
+                };
+    
+                if (settings.warningTime >= settings.stationLength) {
+                    errorMessage.textContent = 'Warning time must be less than station length.';
+                    warningTimeInput.classList.add('input-error');
+                    stationLengthInput.classList.add('input-error');
+                    return;
+                }
+    
+                settingsView.classList.add('hidden');
+                timerView.classList.remove('hidden');
+    
+                currentStation = 0;
+                currentState = 'reading';
+                totalSeconds = settings.initialReadingTime;
+    
+                statusHeading.textContent = 'Initial Reading Time';
+                stationSubheading.textContent = `Next: Station 1`;
+                
+                updateDisplay();
+                startTimer();
+                speak('Reading time starting');
+            });
+    
+            pauseButton.addEventListener('click', () => {
+                isPaused = !isPaused;
+                if (isPaused) {
+                    pauseButton.textContent = 'Resume';
+                    pauseButton.classList.remove('bg-amber-500', 'hover:bg-amber-600');
+                    pauseButton.classList.add('bg-green-500', 'hover:bg-green-600');
+                } else {
+                    pauseButton.textContent = 'Pause';
+                    pauseButton.classList.remove('bg-green-500', 'hover:bg-green-600');
+                    pauseButton.classList.add('bg-amber-500', 'hover:bg-amber-600');
+                }
+            });
+    
+            resetButton.addEventListener('click', () => {
+                // Stop any ongoing speech
+                synth.cancel();
+                
+                clearInterval(timerInterval);
+                timerInterval = null;
+                isPaused = false;
+                currentState = 'idle';
+                currentStation = 0;
+                totalSeconds = 0;
+    
+                timerView.classList.add('hidden');
+                settingsView.classList.remove('hidden');
+    
+                pauseButton.textContent = 'Pause';
+                pauseButton.disabled = false;
+                pauseButton.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-green-500', 'hover:bg-green-600');
+                pauseButton.classList.add('bg-amber-500', 'hover:bg-amber-600');
+                
+                timerDisplay.classList.remove('text-amber-500', 'dark:text-amber-400');
+            });
+        })(); // End of self-invoking function
+    </script>
+</body>
+</html>
